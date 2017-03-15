@@ -31,10 +31,11 @@ func (me *AndroidNotificationServer) Initialize() bool {
 
 func (me *AndroidNotificationServer) SendNotification(msg *PushNotification) PushResponse {
 	var data map[string]interface{}
-	if msg.Type == PUSH_TYPE_CLEAR {
-		data = map[string]interface{}{"type": PUSH_TYPE_CLEAR, "channel_id": msg.ChannelId, "team_id": msg.TeamId}
-	} else {
-		data = map[string]interface{}{"type": PUSH_TYPE_MESSAGE, "message": emoji.Sprint(msg.Message), "channel_id": msg.ChannelId, "channel_name": msg.ChannelName, "team_id": msg.TeamId}
+	if len(msg.Message) > 0 {
+		data["message"] = emoji.Sprint(msg.Message)
+	}
+	for k, v := range msg.CustomData {
+		data[k] = v
 	}
 
 	regIDs := []string{msg.DeviceId}
@@ -47,7 +48,7 @@ func (me *AndroidNotificationServer) SendNotification(msg *PushNotification) Pus
 		resp, err := sender.Send(gcmMsg, 2)
 
 		if err != nil {
-			LogError(fmt.Sprintf("Failed to send GCM push sid=%v did=%v err=%v type=%v", msg.ServerId, msg.DeviceId, err, me.AndroidPushSettings.Type))
+			LogError(fmt.Sprintf("Failed to send GCM push did=%v err=%v type=%v", msg.DeviceId, err, me.AndroidPushSettings.Type))
 			return NewErrorPushResponse("unknown transport error")
 		}
 

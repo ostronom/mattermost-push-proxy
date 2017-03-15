@@ -60,3 +60,7 @@ api/data/*
 .agignore
 .ctags
 tags
+
+.glide
+.idea
+*.iml

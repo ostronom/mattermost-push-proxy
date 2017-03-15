@@ -6,10 +6,10 @@ package server
 import (
 	"fmt"
 
-	"github.com/kyokomi/emoji"
 	apns "github.com/sideshow/apns2"
 	"github.com/sideshow/apns2/certificate"
 	"github.com/sideshow/apns2/payload"
+	"github.com/Masterminds/glide/msg"
 )
 
 type AppleNotificationServer struct {
@@ -47,34 +47,19 @@ func (me *AppleNotificationServer) Initialize() bool {
 func (me *AppleNotificationServer) SendNotification(msg *PushNotification) PushResponse {
 	notification := &apns.Notification{}
 	notification.DeviceToken = msg.DeviceId
-	payload := payload.NewPayload()
-	notification.Payload = payload
+	msgPayload := payload.NewPayload()
+	notification.Payload = msgPayload
 	notification.Topic = me.ApplePushSettings.ApplePushTopic
-	payload.Badge(msg.Badge)
-
-	if msg.Type != PUSH_TYPE_CLEAR {
-		payload.Alert(emoji.Sprint(msg.Message))
-		payload.Category(msg.Category)
-		payload.Sound("default")
-	}
-
-	if len(msg.ChannelId) > 0 {
-		payload.Custom("channel_id", msg.ChannelId)
-	}
-
-	if len(msg.TeamId) > 0 {
-		payload.Custom("team_id", msg.TeamId)
-	}
-
-	if len(msg.ChannelName) > 0 {
-		payload.Custom("channel_name", msg.ChannelName)
+	msgPayload.Badge(msg.Badge)
+	for k, v := range msg.CustomData{
+		msgPayload.Custom(k, v)
 	}
 
 	if me.AppleClient != nil {
 		LogInfo(fmt.Sprintf("Sending apple push notification type=%v", me.ApplePushSettings.Type))
 		res, err := me.AppleClient.Push(notification)
 		if err != nil {
-			LogError(fmt.Sprintf("Failed to send apple push sid=%v did=%v err=%v type=%v", msg.ServerId, msg.DeviceId, err, me.ApplePushSettings.Type))
+			LogError(fmt.Sprintf("Failed to send apple push did=%v err=%v type=%v", msg.DeviceId, err, me.ApplePushSettings.Type))
 			return NewErrorPushResponse("unknown transport error")
 		}
 
